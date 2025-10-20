@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Dark RAG chat theme */
+    --background: 218 23% 11%;
+    --foreground: 213 31% 91%;
+
+    --card: 217 19% 15%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 217 19% 15%;
+    --popover-foreground: 213 31% 91%;
+
+    --primary: 217 91% 59%;
+    --primary-foreground: 0 0% 100%;
+  /* Nosta brand blue (approx HSL of #0987B8) */
+  --nosta-blue: 196 90% 36%;
+  --primary: var(--nosta-blue);
+
+    --secondary: 215 20% 20%;
+    --secondary-foreground: 213 31% 91%;
+
+    --muted: 215 20% 20%;
+    --muted-foreground: 215 16% 57%;
+
+    --accent: 217 91% 59%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 20% 24%;
+    --input: 215 20% 24%;
+    --ring: 217 91% 59%;
+
+    --radius: 0.75rem;
+
+    /* Chat specific tokens */
+    --chat-user: 217 91% 59%;
+    --chat-user-foreground: 0 0% 100%;
+    --chat-ai: 217 19% 18%;
+    --chat-ai-foreground: 213 31% 91%;
+    
+    /* Sidebar tokens */
+    --sidebar-background: 218 23% 11%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 217 91% 59%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 20%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 215 20% 24%;
+    --sidebar-ring: 217 91% 59%;
+
+    /* Document viewer tokens */
+    --document-background: 217 19% 15%;
+    --document-border: 215 20% 24%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 59%), hsl(217 91% 65%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(218 23% 11%), hsl(216 20% 13%));
+    --gradient-chat: linear-gradient(135deg, hsl(217 19% 15%), hsl(215 20% 18%));
+    
+    /* Shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(217 91% 59% / 0.2);
+    --shadow-card: 0 4px 12px -2px hsl(0 0% 0% / 0.3);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+
+  /* Light theme */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 210 10% 18%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 10% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 10% 18%;
+
+    --primary: var(--nosta-blue);
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 20% 95%;
+    --secondary-foreground: 210 10% 18%;
+
+    --muted: 210 20% 95%;
+    --muted-foreground: 210 10% 40%;
+
+    --accent: 210 20% 95%;
+    --accent-foreground: 210 10% 18%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 210 20% 95%;
+    --input: 210 20% 95%;
+    --ring: var(--nosta-blue);
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 210 10% 18%;
+    --sidebar-primary: var(--nosta-blue);
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 98%;
+    --sidebar-accent-foreground: 210 10% 18%;
+    --sidebar-border: 210 20% 95%;
+    --sidebar-ring: var(--nosta-blue);
+    /* Light gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--nosta-blue)), hsl(var(--nosta-blue) / 0.9));
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 20% 98%));
+    --gradient-chat: linear-gradient(135deg, hsl(0 0% 100%), hsl(210 20% 98%));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .bg-gradient-sidebar {
+    background: var(--gradient-sidebar) !important;
+  }
+  .bg-gradient-primary {
+    background: var(--gradient-primary) !important;
+  }
+}
