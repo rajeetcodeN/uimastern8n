@@ -33,6 +33,7 @@ interface ChatInterfaceProps {
   messages: Message[];
   onSendMessage: (message: string, agentId?: string) => void;
   onClearChat: () => void;
+  onStopRequest?: () => void;
   isLoading?: boolean;
   onDocumentClick?: (documentName: string) => void;
   onFileUpload?: (file: File) => Promise<void> | void;
@@ -40,16 +41,30 @@ interface ChatInterfaceProps {
 
 import { Agent, AGENTS } from '@/types/chat';
 import { AgentSelector } from '@/components/chat/AgentSelector';
+import { InitialAgentPrompt } from '@/components/chat/InitialAgentPrompt';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Lock, ExternalLink, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useChatContext } from '@/contexts/ChatContext';
 import { submitFeedback as submitFeedbackToSupabase } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
-export function ChatInterface({ messages, onSendMessage, onClearChat, isLoading = false, onDocumentClick }: ChatInterfaceProps) {
+export function ChatInterface({ 
+  messages, 
+  onSendMessage, 
+  onClearChat, 
+  onStopRequest,
+  isLoading = false, 
+  onDocumentClick 
+}: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [maximizedImage, setMaximizedImage] = useState<string | null>(null);
-  const [currentAgent, setCurrentAgent] = useState<Agent>(AGENTS[0]);
+  const [currentAgent, setCurrentAgent] = useState<Agent | null>(null);
+  const [showAgentSelector, setShowAgentSelector] = useState(true);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [pendingAgent, setPendingAgent] = useState<Agent | null>(null);
   const { currentSessionId, addMessage } = useChatContext();
   const { t } = useLanguage();
   const [feedbackInput, setFeedbackInput] = useState<{ [key: string]: string }>({});
@@ -215,6 +230,33 @@ export function ChatInterface({ messages, onSendMessage, onClearChat, isLoading 
   const handleClearChat = () => {
     onClearChat();
     toast.success("Chat cleared");
+  };
+
+  const handleAgentSelect = (agent: Agent) => {
+    setPendingAgent(agent);
+    if (agent.password) {
+      setShowPasswordPrompt(true);
+    } else {
+      setCurrentAgent(agent);
+      setShowAgentSelector(false);
+    }
+  };
+
+  const handlePasswordSubmit = (password: string) => {
+    if (pendingAgent?.password === password) {
+      setCurrentAgent(pendingAgent);
+      setShowPasswordPrompt(false);
+      setShowAgentSelector(false);
+    }
+  };
+
+  const handleAgentChange = (agent: Agent) => {
+    setPendingAgent(agent);
+    if (agent.password) {
+      setShowPasswordPrompt(true);
+    } else {
+      setCurrentAgent(agent);
+    }
   };
 
   const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
@@ -399,7 +441,66 @@ console.log('Final response content:', responseContent);
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-background h-full">
+    <div className="flex flex-col h-full relative">
+      {/* Agent Selector Dialog */}
+      <Dialog open={showAgentSelector} onOpenChange={setShowAgentSelector}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Select an Agent</DialogTitle>
+            <DialogDescription>
+              Choose an agent to start chatting with
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {AGENTS.map((agent) => (
+              <Button
+                key={agent.id}
+                variant="outline"
+                className="w-full justify-start gap-3 h-auto py-3"
+                onClick={() => handleAgentSelect(agent)}
+              >
+                <span className="text-lg">{agent.icon}</span>
+                <span className="flex-1 text-left">{agent.name}</span>
+                {agent.password && <Lock className="w-4 h-4 text-muted-foreground" />}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Prompt */}
+      <InitialAgentPrompt
+        isOpen={showPasswordPrompt}
+        agent={pendingAgent!}
+        onAuthenticated={() => {
+          if (pendingAgent) {
+            setCurrentAgent(pendingAgent);
+            setShowPasswordPrompt(false);
+            setShowAgentSelector(false);
+          }
+        }}
+      />
+      {/* Cost Cal Banner */}
+      {currentAgent?.id === 'cost' && (
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-200">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex-1">
+              For full cost calculation tool, visit{' '}
+              <a 
+                href="https://costcalculation.vercel.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="font-medium underline inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+              >
+                Nosta Cost Estimation Agent - Industrial Parts Calculator
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
+
       {/* Messages Area */}
       <ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
         <div className="w-full">
@@ -699,38 +800,51 @@ console.log('Final response content:', responseContent);
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L20 9.828a4 4 0 10-5.656-5.656L9.172 9.344" />
               </svg>
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleClearChat}
-              disabled={messages.length === 0}
-              title="Clear chat"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {isLoading && onStopRequest ? (
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                onClick={onStopRequest}
+                title="Stop generating"
+                className="h-10 w-10 animate-pulse"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={handleClearChat}
+                disabled={messages.length === 0}
+                title="Clear chat"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
             <Input
               ref={inputRef}
+              className="flex-1"
+              placeholder="Type a message..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={`Message ${currentAgent.name}...`}
-              className="flex-1 bg-background"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
               disabled={isLoading}
             />
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
+              size="icon"
               disabled={!input.trim() || isLoading}
-              className="bg-gradient-primary hover:opacity-90"
+              className="h-10 w-10"
             >
               <Send className="h-4 w-4" />
             </Button>
-          </div>
-          <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
-            <span className="flex items-center gap-1">
-              <span className="text-base">{currentAgent.icon}</span>
-              <span>Current agent: {currentAgent.name}</span>
-            </span>
           </div>
         </form>
 

@@ -17,7 +17,8 @@ export interface WebhookResponse {
 
 export const sendToWebhook = async (
   chatInput: string,
-  webhookUrl: string
+  webhookUrl: string,
+  signal?: AbortSignal
 ): Promise<WebhookResponse> => {
   const sessionId = sessionManager.getSessionId();
   const timestamp = new Date().toISOString();
@@ -35,7 +36,13 @@ export const sendToWebhook = async (
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal,
     });
+    
+    // If the request was aborted, throw a specific error
+    if (signal?.aborted) {
+      throw new DOMException('The user aborted a request.', 'AbortError');
+    }
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

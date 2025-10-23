@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatInterface } from "@/components/ChatInterface";
 import { useChatContext } from "@/contexts/ChatContext";
@@ -95,12 +95,28 @@ export default function RagChat() {
     nosta: import.meta.env.VITE_N8N_WEBHOOK_NOSTA || 'https://nosta.app.n8n.cloud/webhook/2bb88761-54cb-49b5-9c92-f15c14cc36b6',
     cost: import.meta.env.VITE_N8N_WEBHOOK_COST || 'https://nosta.app.n8n.cloud/webhook/b4c843be-698d-40c6-8e31-9370f5e165e0',
   }));
+  
+  // Ref to store the AbortController for the current request
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setDocuments(mockDocuments);
   }, [setDocuments]);
 
+  const handleStopRequest = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+      toast.info("Request cancelled");
+    }
+  };
+
   const handleSendMessage = async (content: string, agentId?: string) => {
+    // Create a new AbortController for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     // Add user message (attach agentId if provided)
     const userMessage = {
       id: Date.now().toString(),
@@ -108,7 +124,7 @@ export default function RagChat() {
       sender: 'user' as const,
       timestamp: new Date(),
       agentId: agentId || undefined,
-  } as LocalMessage;
+    } as LocalMessage;
 
     addMessage(userMessage);
     setIsLoading(true);
@@ -125,8 +141,11 @@ export default function RagChat() {
         }
       }
 
-      // Send to n8n webhook
-      const webhookResponse = await sendToWebhook(content, targetWebhook);
+      // Send to n8n webhook with abort signal
+      const webhookResponse = await sendToWebhook(content, targetWebhook, controller.signal);
+      
+      // Clear the abort controller on success
+      abortControllerRef.current = null;
       
       if (webhookResponse.success && webhookResponse.response) {
         // AI response from webhook
@@ -396,6 +415,7 @@ export default function RagChat() {
             messages={messages}
             onSendMessage={handleSendMessage}
             onClearChat={handleClearChat}
+            onStopRequest={handleStopRequest}
             isLoading={isLoading}
             onDocumentClick={handleDocumentClick}
           />
