@@ -8,6 +8,13 @@ export interface Agent {
 
 export const AGENTS: Agent[] = [
   {
+    id: 'alt',
+    name: 'Alt Agent',
+    webhookUrl: 'https://nosta.app.n8n.cloud/webhook/294801bb-565e-4d46-a75d-5c4b0f26a18b',
+    icon: '🔄',
+    password: 'alt123'
+  },
+  {
     id: 'sap',
     name: 'SAP Agent',
     webhookUrl: 'https://nosta.app.n8n.cloud/webhook/97d71ce6-384d-455d-9dbe-48e755fc6799',

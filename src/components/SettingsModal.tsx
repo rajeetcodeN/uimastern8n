@@ -37,7 +37,7 @@ export function SettingsModal({ webhookMap, onWebhookMapChange }: SettingsModalP
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
+ s         variant="ghost"
           size="sm"
           className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
