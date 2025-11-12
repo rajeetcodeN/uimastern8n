@@ -7,8 +7,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { PasswordPrompt } from './PasswordPrompt';
+// No router needed as we're using window.location for redirection
 
 interface AgentSelectorProps {
   currentAgent: Agent | null;
@@ -18,6 +20,7 @@ interface AgentSelectorProps {
 export const AgentSelector = ({ currentAgent, onAgentChange }: AgentSelectorProps) => {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [showRedirectDialog, setShowRedirectDialog] = useState(false);
   const [authError, setAuthError] = useState('');
 
   const handleAgentSelect = (agent: Agent) => {
@@ -34,9 +37,21 @@ export const AgentSelector = ({ currentAgent, onAgentChange }: AgentSelectorProp
 
   const handlePasswordSubmit = (password: string) => {
     if (selectedAgent && selectedAgent.password === password) {
-      onAgentChange(selectedAgent);
-      setShowPasswordPrompt(false);
-      setAuthError('');
+      // Handle special case for travel agent first
+      if (selectedAgent.id === 'travel') {
+        setShowPasswordPrompt(false);
+        setAuthError('');
+        setShowRedirectDialog(true);
+        // Auto-redirect after 2 seconds
+        setTimeout(() => {
+          window.location.href = 'https://n8n-traveler.vercel.app/';
+        }, 2000);
+      } else {
+        // For other agents, update the agent as usual
+        onAgentChange(selectedAgent);
+        setShowPasswordPrompt(false);
+        setAuthError('');
+      }
     } else {
       setAuthError('Incorrect password. Please try again.');
     }
@@ -87,6 +102,21 @@ export const AgentSelector = ({ currentAgent, onAgentChange }: AgentSelectorProp
           <p>{authError}</p>
         </div>
       )}
+
+      {/* Redirect Dialog */}
+      <Dialog open={showRedirectDialog} onOpenChange={setShowRedirectDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Redirecting to Travel AI Tool</DialogTitle>
+            <DialogDescription>
+              You will be redirected to the Travel AI tool. Please wait...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
