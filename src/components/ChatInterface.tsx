@@ -42,6 +42,7 @@ interface ChatInterfaceProps {
 import { Agent, AGENTS } from '@/types/chat';
 import { AgentSelector } from '@/components/chat/AgentSelector';
 import { InitialAgentPrompt } from '@/components/chat/InitialAgentPrompt';
+import { PasswordPrompt } from '@/components/chat/PasswordPrompt';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Lock, ExternalLink, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -64,6 +65,7 @@ export function ChatInterface({
   const [currentAgent, setCurrentAgent] = useState<Agent | null>(null);
   const [showAgentSelector, setShowAgentSelector] = useState(true);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [showRedirectDialog, setShowRedirectDialog] = useState(false);
   const [pendingAgent, setPendingAgent] = useState<Agent | null>(null);
   const { currentSessionId, addMessage } = useChatContext();
   const { t } = useLanguage();
@@ -239,14 +241,27 @@ export function ChatInterface({
     } else {
       setCurrentAgent(agent);
       setShowAgentSelector(false);
+      
+      // Handle Travel AI agent redirection
+      if (agent.id === 'travel') {
+        handleTravelAgentRedirect();
+      }
     }
   };
 
   const handlePasswordSubmit = (password: string) => {
-    if (pendingAgent?.password === password) {
+    if (pendingAgent && pendingAgent.password === password) {
       setCurrentAgent(pendingAgent);
       setShowPasswordPrompt(false);
-      setShowAgentSelector(false);
+      setPendingAgent(null);
+      
+      // Handle Travel AI agent redirection after successful password
+      if (pendingAgent.id === 'travel') {
+        handleTravelAgentRedirect();
+      }
+    } else {
+      // Handle incorrect password
+      toast.error(t('incorrectPassword'));
     }
   };
 
@@ -256,7 +271,18 @@ export function ChatInterface({
       setShowPasswordPrompt(true);
     } else {
       setCurrentAgent(agent);
+      // Handle Travel AI agent redirection
+      if (agent.id === 'travel') {
+        handleTravelAgentRedirect();
+      }
     }
+  };
+
+  const handleTravelAgentRedirect = () => {
+    setShowRedirectDialog(true);
+    setTimeout(() => {
+      window.location.href = 'https://n8n-traveler.vercel.app/';
+    }, 2000);
   };
 
   const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
@@ -402,7 +428,13 @@ console.log('Final response content:', responseContent);
       const saved = localStorage.getItem('selectedAgent');
       if (saved) {
         const found = AGENTS.find(a => a.id === saved);
-        if (found) setCurrentAgent(found);
+        if (found) {
+          setCurrentAgent(found);
+          // Handle Travel AI agent redirection on page load
+          if (found.id === 'travel' && !found.password) {
+            handleTravelAgentRedirect();
+          }
+        }
       }
     } catch (e) {
       // ignore
@@ -469,17 +501,31 @@ console.log('Final response content:', responseContent);
       </Dialog>
 
       {/* Password Prompt */}
-      <InitialAgentPrompt
+      <PasswordPrompt
         isOpen={showPasswordPrompt}
-        agent={pendingAgent!}
-        onAuthenticated={() => {
-          if (pendingAgent) {
-            setCurrentAgent(pendingAgent);
-            setShowPasswordPrompt(false);
-            setShowAgentSelector(false);
-          }
+        onClose={() => {
+          setShowPasswordPrompt(false);
+          setPendingAgent(null);
         }}
+        onConfirm={handlePasswordSubmit}
+        agentName={pendingAgent?.name || ''}
       />
+
+      {/* Redirect Dialog */}
+      <Dialog open={showRedirectDialog} onOpenChange={setShowRedirectDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Redirecting to Travel AI Tool</DialogTitle>
+            <DialogDescription>
+              You will be redirected to the Travel AI tool. Please wait...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Cost Cal Banner */}
       {currentAgent?.id === 'cost' && (
         <Alert className="bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-200">
