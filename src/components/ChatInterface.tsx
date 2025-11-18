@@ -254,6 +254,7 @@ export function ChatInterface({
       setCurrentAgent(pendingAgent);
       setShowPasswordPrompt(false);
       setPendingAgent(null);
+      setShowAgentSelector(false);  // Close the agent selector popup
       
       // Handle Travel AI agent redirection after successful password
       if (pendingAgent.id === 'travel') {
