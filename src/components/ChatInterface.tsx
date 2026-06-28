@@ -52,13 +52,13 @@ import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
-export function ChatInterface({ 
-  messages, 
-  onSendMessage, 
-  onClearChat, 
+export function ChatInterface({
+  messages,
+  onSendMessage,
+  onClearChat,
   onStopRequest,
-  isLoading = false, 
-  onDocumentClick 
+  isLoading = false,
+  onDocumentClick
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [maximizedImage, setMaximizedImage] = useState<string | null>(null);
@@ -78,7 +78,7 @@ export function ChatInterface({
       ...prev,
       [messageId]: type
     }));
-    
+
     if (type === 'other') {
       setShowFeedbackInput(prev => ({
         ...prev,
@@ -97,7 +97,7 @@ export function ChatInterface({
     try {
       // Get current user ID if available
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       // Prepare feedback data
       const feedbackData = {
         messageId,
@@ -117,25 +117,25 @@ export function ChatInterface({
 
       // Save to Supabase
       const { error } = await submitFeedbackToSupabase(feedbackData);
-      
+
       if (error) throw error;
 
       // Update local state
-      const updatedMessages = messages.map(msg => 
-        msg.id === messageId 
-          ? { 
-              ...msg, 
-              feedback: { 
-                type,
-                comment: type === 'other' ? comment : undefined,
-                messageContent: message.content,
-                messageImages: message.images,
-                timestamp: new Date().toISOString()
-              } 
+      const updatedMessages = messages.map(msg =>
+        msg.id === messageId
+          ? {
+            ...msg,
+            feedback: {
+              type,
+              comment: type === 'other' ? comment : undefined,
+              messageContent: message.content,
+              messageImages: message.images,
+              timestamp: new Date().toISOString()
             }
+          }
           : msg
       );
-      
+
       // Show success message
       const feedbackMessages = {
         image_broken: 'Thank you for reporting the broken image!',
@@ -144,9 +144,9 @@ export function ChatInterface({
         document_link_broken: 'Thank you for reporting the broken document link!',
         other: 'Thank you for your feedback!'
       };
-      
+
       toast.success(feedbackMessages[type]);
-      
+
     } catch (error) {
       console.error('Failed to submit feedback:', error);
       toast.error('Failed to submit feedback. Please try again.');
@@ -170,7 +170,7 @@ export function ChatInterface({
   const handleFeedbackSubmit = (messageId: string) => {
     const type = selectedFeedbackType[messageId];
     const comment = feedbackInput[messageId];
-    
+
     if (type) {
       submitFeedback(messageId, type, comment);
     }
@@ -203,10 +203,10 @@ export function ChatInterface({
       // If this is the first message, use it as the conversation name
       if (messages.length === 0) {
         // Truncate the message if it's too long
-        const conversationName = trimmedInput.length > 30 
-          ? `${trimmedInput.substring(0, 30)}...` 
+        const conversationName = trimmedInput.length > 30
+          ? `${trimmedInput.substring(0, 30)}...`
           : trimmedInput;
-        
+
         // Add a small delay to ensure the message is processed first
         setTimeout(() => {
           // This assumes the parent component will handle the conversation naming
@@ -216,7 +216,7 @@ export function ChatInterface({
           }
         }, 100);
       }
-      
+
       onSendMessage(trimmedInput, currentAgent?.id);
       setInput("");
     }
@@ -241,7 +241,7 @@ export function ChatInterface({
     } else {
       setCurrentAgent(agent);
       setShowAgentSelector(false);
-      
+
       // Handle Travel AI agent redirection
       if (agent.id === 'travel') {
         handleTravelAgentRedirect();
@@ -255,7 +255,7 @@ export function ChatInterface({
       setShowPasswordPrompt(false);
       setPendingAgent(null);
       setShowAgentSelector(false);  // Close the agent selector popup
-      
+
       // Handle Travel AI agent redirection after successful password
       if (pendingAgent.id === 'travel') {
         handleTravelAgentRedirect();
@@ -307,7 +307,7 @@ export function ChatInterface({
 
   const handleFileUpload = async () => {
     if (!pendingFile) return;
-    
+
     try {
       // Create a user message for the file upload
       const userMessage = {
@@ -317,20 +317,20 @@ export function ChatInterface({
         timestamp: new Date(),
         agentId: currentAgent?.id
       };
-      
+
       // Add user message to chat
       addMessage(userMessage);
-      
+
       // Prepare form data
       const formData = new FormData();
       formData.append('file', pendingFile);
       formData.append('chatInput', fileMessage || 'Document upload');
       formData.append('sessionId', currentSessionId);
       formData.append('timestamp', new Date().toISOString());
-      
+
       // Get the webhook URL for the legal agent
       const legalWebhookUrl = 'https://nosta.app.n8n.cloud/webhook/8b72a299-6557-4d8c-a365-09e105d76393';
-      
+
       // Use the same webhook function as other agents
       const webhookResponse = await fetch(legalWebhookUrl, {
         method: 'POST',
@@ -338,17 +338,17 @@ export function ChatInterface({
       });
 
       console.log('Webhook response status:', webhookResponse.status);
-      
+
       if (!webhookResponse.ok) {
         const errorText = await webhookResponse.text();
         console.error('Webhook error response:', errorText);
         throw new Error(`HTTP error! status: ${webhookResponse.status}`);
       }
-      
+
       // Get the raw response text first
       const responseText = await webhookResponse.text();
       console.log('Raw response text:', responseText);
-      
+
       // Try to parse as JSON, fall back to raw text if not valid JSON
       let responseData;
       try {
@@ -358,7 +358,7 @@ export function ChatInterface({
         console.log('Response is not valid JSON, using as plain text');
         responseData = { text: responseText };
       }
-      
+
       // Log the full response data for debugging
       console.log('Response data structure:', {
         keys: Object.keys(responseData),
@@ -367,21 +367,21 @@ export function ChatInterface({
         hasMessage: 'message' in responseData,
         fullData: responseData
       });
-      
+
       // Try to extract the response text from various possible locations
-     const responseContent = 
-  responseData.output ||  // Check for 'output' field first
-  responseData.text || 
-  responseData.response || 
-  responseData.message ||
-  responseData.data?.output ||
-  responseData.data?.text ||
-  responseData.data?.response ||
-  (typeof responseData === 'string' ? responseData : t('fileProcessed'));
+      const responseContent =
+        responseData.output ||  // Check for 'output' field first
+        responseData.text ||
+        responseData.response ||
+        responseData.message ||
+        responseData.data?.output ||
+        responseData.data?.text ||
+        responseData.data?.response ||
+        (typeof responseData === 'string' ? responseData : t('fileProcessed'));
 
-console.log('Final response content:', responseContent);
+      console.log('Final response content:', responseContent);
 
-      
+
       // Add AI response to chat
       const aiMessage = {
         id: (Date.now() + 1).toString(),
@@ -390,13 +390,13 @@ console.log('Final response content:', responseContent);
         timestamp: new Date(),
         agentId: currentAgent?.id
       };
-      
+
       addMessage(aiMessage);
       toast.success(t('fileProcessed'));
-      
+
     } catch (err) {
       console.error('File upload failed:', err);
-      
+
       // Add error message to chat
       addMessage({
         id: (Date.now() + 1).toString(),
@@ -405,7 +405,7 @@ console.log('Final response content:', responseContent);
         timestamp: new Date(),
         agentId: currentAgent?.id
       });
-      
+
       toast.error(t('fileUploadFailed'));
     } finally {
       // Reset state
@@ -453,10 +453,10 @@ console.log('Final response content:', responseContent);
   // Function to detect document links and create clickable elements
   const createDocumentLink = (text: string) => {
     if (!onDocumentClick) return text;
-    
+
     // Pattern to match document names (e.g., "DATA loader Documentation", "constitution.pdf", etc.)
     const documentPattern = /(\b[A-Z][a-zA-Z\s]+(?:Documentation|Document|Guide|Manual|PDF|pdf|doc|docx)\b)/gi;
-    
+
     return text.split(documentPattern).map((part, index) => {
       if (documentPattern.test(part)) {
         return (
@@ -474,7 +474,7 @@ console.log('Final response content:', responseContent);
   };
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative w-full max-w-full overflow-x-hidden">
       {/* Agent Selector Dialog */}
       <Dialog open={showAgentSelector} onOpenChange={setShowAgentSelector}>
         <DialogContent className="sm:max-w-[425px]">
@@ -534,9 +534,9 @@ console.log('Final response content:', responseContent);
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="flex-1">
               For full cost calculation tool, visit{' '}
-              <a 
-                href="https://costcalculation.vercel.app/" 
-                target="_blank" 
+              <a
+                href="https://costcalculation.vercel.app/"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium underline inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
               >
@@ -550,26 +550,26 @@ console.log('Final response content:', responseContent);
 
       {/* Messages Area */}
       <ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
-        <div className="w-full">
+        <div className="w-full overflow-x-hidden">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-12 px-8">
               <div className="text-lg mb-2">{t('welcomeTitle')}</div>
               <p>{t('welcomeSubtitle')}</p>
             </div>
           ) : (
-            <div className="space-y-8 px-8 py-6">
+            <div className="space-y-6 px-3 py-4 md:space-y-8 md:px-8 md:py-6 w-full max-w-full">
               {messages.map((message) => (
                 <div key={message.id} className="w-full">
                   {message.sender === 'user' ? (
                     // User message with bubble
                     <div className="flex justify-end mb-4">
-                      <div className="max-w-[70%] rounded-lg p-4 shadow-card bg-chat-user text-chat-user-foreground">
+                      <div className="max-w-[85%] md:max-w-[70%] rounded-lg p-3 md:p-4 shadow-card bg-chat-user text-chat-user-foreground overflow-hidden">
                         <div className="flex items-start gap-3">
                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 bg-chat-user-foreground text-chat-user">
                             U
                           </div>
                           <div className="flex-1">
-                            <div className="whitespace-pre-wrap">{message.content}</div>
+                            <div className="whitespace-pre-wrap break-words">{message.content}</div>
                             <div className="text-xs text-muted-foreground mt-2">
                               {message.timestamp.toLocaleTimeString()}
                             </div>
@@ -585,95 +585,95 @@ console.log('Final response content:', responseContent);
                           AI
                         </div>
                         <div className="text-xs text-muted-foreground">
-                        {message.timestamp.toLocaleTimeString()}
+                          {message.timestamp.toLocaleTimeString()}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-6 w-6 p-0 ml-2 bg-background/80 hover:bg-accent/50 border-border/50 hover:border-foreground/50 hover:text-foreground"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Report an issue"
+                            >
+                              <Flag className="h-3.5 w-3.5 text-foreground/70 hover:text-foreground transition-colors" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => handleFeedbackSelect(message.id, 'image_broken')}
+                            >
+                              <ImageOff className="mr-2 h-4 w-4" />
+                              <span>{t('imageBroken')}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleFeedbackSelect(message.id, 'inaccurate_info')}
+                            >
+                              <AlertTriangle className="mr-2 h-4 w-4" />
+                              <span>{t('inaccurateInfo')}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleFeedbackSelect(message.id, 'irrelevant')}
+                            >
+                              <ThumbsDown className="mr-2 h-4 w-4" />
+                              <span>{t('irrelevant')}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleFeedbackSelect(message.id, 'document_link_broken')}
+                            >
+                              <Link2Off className="mr-2 h-4 w-4" />
+                              <span>{t('documentLinkBroken')}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleFeedbackSelect(message.id, 'other')}
+                            >
+                              <MessageSquare className="mr-2 h-4 w-4" />
+                              <span>{t('other')}</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="outline"
-                            size="icon"
-                            className="h-6 w-6 p-0 ml-2 bg-background/80 hover:bg-accent/50 border-border/50 hover:border-foreground/50 hover:text-foreground"
-                            onClick={(e) => e.stopPropagation()}
-                            title="Report an issue"
-                          >
-                            <Flag className="h-3.5 w-3.5 text-foreground/70 hover:text-foreground transition-colors" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem 
-                            onClick={() => handleFeedbackSelect(message.id, 'image_broken')}
-                          >
-                            <ImageOff className="mr-2 h-4 w-4" />
-                            <span>{t('imageBroken')}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleFeedbackSelect(message.id, 'inaccurate_info')}
-                          >
-                            <AlertTriangle className="mr-2 h-4 w-4" />
-                            <span>{t('inaccurateInfo')}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleFeedbackSelect(message.id, 'irrelevant')}
-                          >
-                            <ThumbsDown className="mr-2 h-4 w-4" />
-                            <span>{t('irrelevant')}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleFeedbackSelect(message.id, 'document_link_broken')}
-                          >
-                            <Link2Off className="mr-2 h-4 w-4" />
-                            <span>{t('documentLinkBroken')}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleFeedbackSelect(message.id, 'other')}
-                          >
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            <span>{t('other')}</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
 
-                    {showFeedbackInput[message.id] && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Input
-                          type="text"
-                          placeholder="Please describe the issue..."
-                          value={feedbackInput[message.id] || ''}
-                          onChange={(e) => setFeedbackInput(prev => ({
-                            ...prev,
-                            [message.id]: e.target.value
-                          }))}
-                          className="h-8 text-xs w-48"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleFeedbackSubmit(message.id);
-                            }
-                          }}
-                        />
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8 px-2 text-xs"
-                          onClick={() => handleFeedbackSubmit(message.id)}
-                        >
-                          Send
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {message.feedback && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {message.feedback.type === 'image_broken' && 'Reported: Broken Image'}
-                        {message.feedback.type === 'inaccurate_info' && 'Reported: Inaccurate Info'}
-                        {message.feedback.type === 'irrelevant' && 'Reported: Irrelevant'}
-                        {message.feedback.type === 'document_link_broken' && 'Reported: Broken Document Link'}
-                        {message.feedback.type === 'other' && 'Feedback Submitted'}
-                      </div>
-                    )}
-                      
+                      {showFeedbackInput[message.id] && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Input
+                            type="text"
+                            placeholder="Please describe the issue..."
+                            value={feedbackInput[message.id] || ''}
+                            onChange={(e) => setFeedbackInput(prev => ({
+                              ...prev,
+                              [message.id]: e.target.value
+                            }))}
+                            className="h-8 text-xs w-48"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleFeedbackSubmit(message.id);
+                              }
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => handleFeedbackSubmit(message.id)}
+                          >
+                            Send
+                          </Button>
+                        </div>
+                      )}
+
+                      {message.feedback && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {message.feedback.type === 'image_broken' && 'Reported: Broken Image'}
+                          {message.feedback.type === 'inaccurate_info' && 'Reported: Inaccurate Info'}
+                          {message.feedback.type === 'irrelevant' && 'Reported: Irrelevant'}
+                          {message.feedback.type === 'document_link_broken' && 'Reported: Broken Document Link'}
+                          {message.feedback.type === 'other' && 'Feedback Submitted'}
+                        </div>
+                      )}
+
                       {/* AI Response Content - Full Width */}
-                      <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:leading-relaxed prose-p:my-3 prose-headings:mt-6 prose-headings:mb-3 prose-ul:my-2 prose-ol:my-2 prose-li:my-1">
+                      <div className="prose prose-sm w-full max-w-full text-foreground dark:prose-invert prose-p:leading-relaxed prose-p:my-3 prose-headings:mt-6 prose-headings:mb-3 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 overflow-x-hidden break-words">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           rehypePlugins={[rehypeRaw]}
@@ -683,9 +683,9 @@ console.log('Final response content:', responseContent);
                               return <InteractiveImage src={String(p.src ?? '')} alt={String(p.alt ?? '')} />;
                             },
                             a: ({ href, children, ...props }) => (
-                              <a 
-                                href={href} 
-                                target="_blank" 
+                              <a
+                                href={href}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-400 hover:text-blue-300 underline"
                                 {...props}
@@ -729,12 +729,12 @@ console.log('Final response content:', responseContent);
                             ),
                             p: ({ children, ...props }) => {
                               // Check if this paragraph contains an image
-                              const hasImage = React.Children.toArray(children).some(child => 
+                              const hasImage = React.Children.toArray(children).some(child =>
                                 React.isValidElement(child) && child.type === 'img'
                               );
-                              
+
                               const Tag = hasImage ? 'div' : 'div';
-                              
+
                               return (
                                 <Tag className="text-foreground leading-relaxed my-3 text-[15px]" {...props}>
                                   {typeof children === 'string' ? createDocumentLink(children) : children}
@@ -756,11 +756,43 @@ console.log('Final response content:', responseContent);
                                 {children}
                               </li>
                             ),
-                            
+
                             blockquote: ({ children, ...props }) => (
                               <blockquote className="border-l-4 border-primary pl-4 italic text-muted-foreground mb-3" {...props}>
                                 {children}
                               </blockquote>
+                            ),
+                            table: ({ children, ...props }) => (
+                              <div className="w-full overflow-x-auto my-4 border border-border rounded-lg shadow-sm">
+                                <table className="w-full border-collapse text-left text-sm" {...props}>
+                                  {children}
+                                </table>
+                              </div>
+                            ),
+                            thead: ({ children, ...props }) => (
+                              <thead className="bg-muted/50 text-muted-foreground" {...props}>
+                                {children}
+                              </thead>
+                            ),
+                            tbody: ({ children, ...props }) => (
+                              <tbody className="divide-y divide-border" {...props}>
+                                {children}
+                              </tbody>
+                            ),
+                            tr: ({ children, ...props }) => (
+                              <tr className="hover:bg-muted/10 transition-colors" {...props}>
+                                {children}
+                              </tr>
+                            ),
+                            th: ({ children, ...props }) => (
+                              <th className="px-4 py-3 font-semibold text-foreground border-b border-border text-xs uppercase tracking-wider" {...props}>
+                                {children}
+                              </th>
+                            ),
+                            td: ({ children, ...props }) => (
+                              <td className="px-4 py-3 text-foreground whitespace-normal break-words leading-normal align-top" {...props}>
+                                {children}
+                              </td>
                             ),
                           }}
                         >
@@ -822,10 +854,62 @@ console.log('Final response content:', responseContent);
       {/* Input Area - Fixed at bottom */}
       <div className="p-4 border-t border-border bg-card flex-shrink-0">
         <form onSubmit={handleSubmit} className="w-full">
-          <div className="flex gap-2 items-end">
-            <div className="flex items-center gap-2">
+          {/* Mobile-only control bar */}
+          <div className="flex md:hidden items-center justify-between gap-2 border-b border-border/40 pb-2 mb-2">
+            <div className="flex items-center gap-1.5">
               <AgentSelector currentAgent={currentAgent} onAgentChange={setCurrentAgent} />
+              {currentAgent && (
+                <span className="text-[11px] font-medium bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20 max-w-[130px] truncate">
+                  {currentAgent.name}
+                </span>
+              )}
             </div>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-accent text-muted-foreground"
+                onClick={(e) => {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }}
+                title="Upload file"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L20 9.828a4 4 0 10-5.656-5.656L9.172 9.344" />
+                </svg>
+              </Button>
+
+              {isLoading && onStopRequest ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  onClick={onStopRequest}
+                  title="Stop generating"
+                  className="h-8 w-8 animate-pulse"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  onClick={handleClearChat}
+                  disabled={messages.length === 0}
+                  title="Clear chat"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2 items-end">
             <input
               aria-label="Upload file"
               ref={el => (fileInputRef.current = el)}
@@ -833,43 +917,50 @@ console.log('Final response content:', responseContent);
               className="hidden"
               onChange={handleFileSelected}
             />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.preventDefault();
-                fileInputRef.current?.click();
-              }}
-              title="Upload file"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L20 9.828a4 4 0 10-5.656-5.656L9.172 9.344" />
-              </svg>
-            </Button>
-            {isLoading && onStopRequest ? (
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                onClick={onStopRequest}
-                title="Stop generating"
-                className="h-10 w-10 animate-pulse"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            ) : (
+
+            {/* Desktop-only control buttons */}
+            <div className="hidden md:flex items-center gap-2">
+              <AgentSelector currentAgent={currentAgent} onAgentChange={setCurrentAgent} />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                onClick={handleClearChat}
-                disabled={messages.length === 0}
-                title="Clear chat"
+                onClick={(e) => {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }}
+                title="Upload file"
               >
-                <Trash2 className="h-4 w-4" />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L20 9.828a4 4 0 10-5.656-5.656L9.172 9.344" />
+                </svg>
               </Button>
-            )}
+
+              {isLoading && onStopRequest ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  onClick={onStopRequest}
+                  title="Stop generating"
+                  className="h-10 w-10 animate-pulse"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleClearChat}
+                  disabled={messages.length === 0}
+                  title="Clear chat"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
             <Input
               ref={inputRef}
               className="flex-1"
@@ -884,11 +975,12 @@ console.log('Final response content:', responseContent);
               }}
               disabled={isLoading}
             />
+
             <Button
               type="submit"
               size="icon"
               disabled={!input.trim() || isLoading}
-              className="h-10 w-10"
+              className="h-10 w-10 flex-shrink-0"
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -907,12 +999,12 @@ console.log('Final response content:', responseContent);
                 <Button variant="outline" onClick={handleCancelUpload}>
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
                     handleFileUpload();
-                  }} 
+                  }}
                   className="bg-gradient-primary"
                 >
                   Upload
@@ -924,7 +1016,7 @@ console.log('Final response content:', responseContent);
 
         {/* Maximized Image View */}
         {maximizedImage && (
-          <div 
+          <div
             className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
             onClick={() => setMaximizedImage(null)}
           >

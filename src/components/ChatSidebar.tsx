@@ -46,6 +46,8 @@ interface ChatSidebarProps {
   editingTitle: string;
   setEditingTitle: (title: string) => void;
   getConversationPreview: (id: string) => string;
+  isSidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
 }
 
 export function ChatSidebar({
@@ -71,9 +73,10 @@ export function ChatSidebar({
   editingTitle,
   setEditingTitle,
   getConversationPreview,
+  isSidebarCollapsed,
+  onToggleSidebar,
 }: ChatSidebarProps) {
   const { t } = useLanguage();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showActiveSources, setShowActiveSources] = useState(false);
   const navigate = useNavigate();
@@ -83,9 +86,6 @@ export function ChatSidebar({
     const checkIfMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile) {
-        setIsSidebarCollapsed(true);
-      }
     };
 
     // Initial check
@@ -97,7 +97,7 @@ export function ChatSidebar({
   }, []);
 
   const toggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
+    onToggleSidebar();
   };
 
   const toggleActiveSources = () => {
@@ -107,7 +107,7 @@ export function ChatSidebar({
   // Render collapsed sidebar (burger menu)
   if (isSidebarCollapsed) {
     return (
-      <div className="h-full w-12 flex-shrink-0 flex flex-col bg-gradient-sidebar border-r border-sidebar-border relative">
+      <div className="h-full w-0 md:w-12 overflow-hidden flex-shrink-0 flex flex-col bg-gradient-sidebar border-r-0 md:border-r border-sidebar-border relative hidden md:flex">
         <button 
           onClick={toggleSidebar}
           className="p-3 hover:bg-sidebar-accent/20 transition-colors group flex flex-col items-center justify-center h-12 w-12"
@@ -191,7 +191,12 @@ export function ChatSidebar({
           </div>
           
           <Button 
-            onClick={onNewChat}
+            onClick={() => {
+              onNewChat();
+              if (isMobile) {
+                onToggleSidebar();
+              }
+            }}
             className="w-full justify-start gap-2 bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground"
           >
             <Plus className="h-4 w-4" />
@@ -247,7 +252,12 @@ export function ChatSidebar({
                   // Normal mode
                   <div
                     className="p-2 cursor-pointer"
-                    onClick={() => onSelectConversation(conversation.id)}
+                    onClick={() => {
+                      onSelectConversation(conversation.id);
+                      if (isMobile) {
+                        onToggleSidebar();
+                      }
+                    }}
                   >
                     <div className="flex items-start gap-2">
                       <MessageSquare className="h-4 w-4 flex-shrink-0 mt-0.5" />

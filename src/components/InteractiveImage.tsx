@@ -21,7 +21,7 @@ export function InteractiveImage({ src, alt, className = "" }: InteractiveImageP
 
   return (
     <>
-      <div className="relative group inline-block">
+      <div className="relative group inline-block max-w-full">
         <img
           src={src}
           alt={alt || "Image"}
@@ -41,7 +41,7 @@ export function InteractiveImage({ src, alt, className = "" }: InteractiveImageP
 
       {/* Fullscreen Modal */}
       {isMaximized && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={handleClose}
         >

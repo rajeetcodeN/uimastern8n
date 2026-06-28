@@ -6,7 +6,7 @@ import { sendToWebhook } from "@/lib/webhook";
 import { toast } from "sonner";
 import { AGENTS } from '@/types/chat';
 import { Button } from "@/components/ui/button";
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { PanelRightClose, PanelRightOpen, Menu } from "lucide-react";
 
 // Mock data types
 interface Document {
@@ -86,6 +86,18 @@ export default function RagChat() {
 
   const [editingConversation, setEditingConversation] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+
+  // Sync isSidebarCollapsed on mount and resize
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobileView = window.innerWidth < 768;
+      setIsSidebarCollapsed(isMobileView);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const [webhookUrl, setWebhookUrl] = useState(
     import.meta.env.VITE_N8N_WEBHOOK_URL || "https://ssvautomate.app.n8n.cloud/webhook/03c4b591-d635-40ec-82b6-ffa42edda35f"
   );
@@ -345,9 +357,23 @@ export default function RagChat() {
   const selectedDocument = documents.find(d => d.id === activeDocument);
 
   return (
-    <div className="h-screen flex bg-background text-foreground overflow-hidden">
-      {/* Left Sidebar */}
-      <div className="h-full">
+    <div className="h-screen flex bg-background text-foreground overflow-hidden max-w-full">
+      {/* Left Sidebar - fixed overlay on mobile, normal on desktop */}
+      {!isSidebarCollapsed && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setIsSidebarCollapsed(true)}
+          aria-label="Close sidebar"
+        />
+      )}
+      <div
+        className={`
+          h-full z-50
+          ${isSidebarCollapsed
+            ? "hidden md:block md:relative md:flex-shrink-0"
+            : "fixed inset-y-0 left-0 w-72 md:relative md:w-auto md:flex-shrink-0"}
+        `}
+      >
         <ChatSidebar
           conversations={conversations}
           documents={documents}
@@ -372,18 +398,31 @@ export default function RagChat() {
           editingTitle={editingTitle}
           setEditingTitle={setEditingTitle}
           getConversationPreview={getConversationPreview}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full">
+      {/* Main Chat Area - always takes full width on mobile */}
+      <div className="flex-1 flex flex-col min-w-0 w-full h-full overflow-hidden">
         {/* Header with Panel Toggle */}
         <div className="p-4 border-b border-border bg-card flex items-center justify-between flex-shrink-0">
-          <div>
-            <h1 className="text-lg font-semibold text-card-foreground">NOSTA MASTER AI AGENT</h1>
-            <p className="text-sm text-muted-foreground">
-              Session: {currentSessionId ? `${currentSessionId.substring(0, 8)}...` : 'Not initialized'}
-            </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden h-9 w-9 text-foreground"
+              onClick={() => setIsSidebarCollapsed(false)}
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-base md:text-lg font-semibold text-card-foreground">NOSTA MASTER AI AGENT</h1>
+              <p className="text-xs md:text-sm text-muted-foreground">
+                Session: {currentSessionId ? `${currentSessionId.substring(0, 8)}...` : 'Not initialized'}
+              </p>
+            </div>
           </div>
           {/* ===== ON HOLD: Document Viewer Toggle - Temporarily Hidden
           <div className="flex items-center gap-2">
@@ -410,7 +449,7 @@ export default function RagChat() {
         </div>
 
         {/* Chat Interface */}
-        <div className="flex-1 min-h-0 h-full">
+        <div className="flex-1 min-w-0 min-h-0 h-full">
           <ChatInterface
             messages={messages}
             onSendMessage={handleSendMessage}
